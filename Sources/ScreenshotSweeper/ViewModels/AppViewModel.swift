@@ -7,22 +7,31 @@ final class AppViewModel: ObservableObject {
     @Published var matchCount: Int = 0
     private let scheduler = Scheduler()
     private let cleanupService = CleanupService()
-    private let logger = Logger(subsystem: "ScreenshotSweeper", category: "ViewModel")
+    private let logger = Logger(subsystem: "ScreenshotSweeper", category: "scheduler")
 
     init() {
         settings = Settings.load()
         refreshMatchCount()
-        scheduleCleanup()
+        recomputeSchedule()
     }
 
     @discardableResult
-    func cleanNow() -> Int {
+    func cleanNow() -> CleanupResult {
         let destination: CleanupService.Destination
+        var accessURL: URL? = nil
         switch settings.destinationMode {
         case .trash:
             destination = .trash
         case .folder(let bookmark):
             if let url = FolderAccess.resolveBookmark(bookmark) {
+                accessURL = url
+                url.startAccessingSecurityScopedResource()
+                destination = .folder(url)
+            } else if let newBm = FolderAccess.selectFolder(), let url = FolderAccess.resolveBookmark(newBm) {
+                settings.destinationMode = .folder(bookmark: newBm)
+                settings.save()
+                accessURL = url
+                url.startAccessingSecurityScopedResource()
                 destination = .folder(url)
             } else {
                 logger.error("Folder bookmark invalid; defaulting to trash")
@@ -30,63 +39,49 @@ final class AppViewModel: ObservableObject {
             }
         }
 
-        let count = cleanupService.performCleanup(prefix: settings.prefix, isCaseSensitive: settings.isCaseSensitive, destination: destination)
-        if count > 0 {
-            settings.totalCleaned += count
+        let result: CleanupResult
+        do {
+            result = try cleanupService.performCleanup(prefix: settings.prefix, isCaseSensitive: settings.isCaseSensitive, destination: destination)
+            if result.cleaned > 0 {
+                settings.totalCleaned += result.cleaned
+            }
+            settings.lastRun = Date()
+            settings.save()
+            refreshMatchCount()
+        } catch {
+            logger.error("Cleanup failed due to permission error")
+            accessURL?.stopAccessingSecurityScopedResource()
+            return CleanupResult(cleaned: 0, skipped: 0)
         }
-        settings.lastRun = Date()
-        settings.save()
-        refreshMatchCount()
-        return count
+        accessURL?.stopAccessingSecurityScopedResource()
+        return result
     }
 
     func refreshMatchCount() {
-        matchCount = countMatches(prefix: settings.prefix, isCaseSensitive: settings.isCaseSensitive)
+        let fm = FileManager.default
+        guard let desktop = fm.urls(for: .desktopDirectory, in: .userDomainMask).first else { matchCount = 0; return }
+        matchCount = cleanupService.findMatches(in: desktop, prefix: settings.prefix, isCaseSensitive: settings.isCaseSensitive).count
     }
 
     func updateSchedule() {
-        scheduler.invalidate()
-        scheduleCleanup()
+        recomputeSchedule()
     }
 
-    private func scheduleCleanup() {
+    /// Checks for missed runs and schedules the next one.
+    func recomputeSchedule() {
+        scheduler.invalidate()
         guard settings.cleanupEnabled else { return }
-        let next = nextCleanupDate()
+        let now = Date()
+        if let lastRun = settings.lastRun,
+           let previous = NextRunCalculator.previousDate(for: settings.cleanupTime, from: now),
+           lastRun < previous {
+            _ = cleanNow()
+        }
+        let next = NextRunCalculator.nextDate(for: settings.cleanupTime, from: Date())
         scheduler.schedule(at: next) { [weak self] in
             guard let self = self else { return }
             _ = self.cleanNow()
-            self.scheduleCleanup()
-        }
-    }
-
-    private func nextCleanupDate() -> Date {
-        var comps = settings.cleanupTime
-        let cal = Calendar.current
-        var date = cal.date(bySettingHour: comps.hour ?? 23, minute: comps.minute ?? 59, second: 0, of: Date()) ?? Date()
-        if date < Date() {
-            date = cal.date(byAdding: .day, value: 1, to: date) ?? date
-        }
-        return date
-    }
-
-    private func countMatches(prefix: String, isCaseSensitive: Bool) -> Int {
-        let fm = FileManager.default
-        guard let desktop = fm.urls(for: .desktopDirectory, in: .userDomainMask).first else { return 0 }
-        let exts = ["png", "jpg", "jpeg", "heic", "tiff"]
-        do {
-            let items = try fm.contentsOfDirectory(at: desktop, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles])
-            return items.filter { url in
-                guard exts.contains(url.pathExtension.lowercased()) else { return false }
-                let name = url.lastPathComponent
-                if isCaseSensitive {
-                    return name.hasPrefix(prefix)
-                } else {
-                    return name.lowercased().hasPrefix(prefix.lowercased())
-                }
-            }.count
-        } catch {
-            logger.error("Error counting matches: \(error.localizedDescription, privacy: .public)")
-            return 0
+            self.recomputeSchedule()
         }
     }
 

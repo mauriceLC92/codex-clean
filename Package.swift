@@ -17,6 +17,11 @@ let package = Package(
                 .linkedFramework("AppKit"),
                 .linkedFramework("SwiftUI")
             ]
+        ),
+        .testTarget(
+            name: "ScreenshotSweeperTests",
+            dependencies: ["ScreenshotSweeper"],
+            path: "Tests/ScreenshotSweeperTests"
         )
     ]
 )

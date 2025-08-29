@@ -17,7 +17,11 @@ struct Settings: Codable {
 }
 
 extension Settings {
-    private static let defaultsKey = "settings"
+    /// Namespace UserDefaults keys using the bundle identifier.
+    private static var defaultsKey: String {
+        let bundle = Bundle.main.bundleIdentifier ?? "com.example.screenshotsweeper"
+        return "\(bundle).settings"
+    }
 
     static func load() -> Settings {
         let defaults = UserDefaults.standard

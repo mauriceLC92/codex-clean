@@ -1,5 +1,6 @@
 import SwiftUI
 import os.log
+import AppKit
 
 @main
 struct ScreenshotSweeperApp: App {
@@ -13,6 +14,9 @@ struct ScreenshotSweeperApp: App {
         .menuBarExtraStyle(.window)
         .sheet(isPresented: $showingPreferences) {
             PreferencesView(viewModel: viewModel)
+        }
+        .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didWakeNotification)) { _ in
+            viewModel.recomputeSchedule()
         }
     }
 }
