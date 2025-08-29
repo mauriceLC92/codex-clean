@@ -78,11 +78,16 @@ struct PreferencesView: View {
             }
 
             Section("Filter") {
-                TextField("Prefix", text: $viewModel.settings.prefix)
-                    .onChange(of: viewModel.settings.prefix) { _ in
+                TextField("Prefix", text: Binding(
+                    get: { viewModel.settings.prefix },
+                    set: { newValue in
+                        viewModel.settings.prefix = newValue
                         viewModel.settings.save()
                         viewModel.refreshMatchCount()
                     }
+                ))
+                .textFieldStyle(.roundedBorder)
+                .focusable()
                 Toggle("Case-sensitive match", isOn: $viewModel.settings.isCaseSensitive)
                     .onChange(of: viewModel.settings.isCaseSensitive) { _ in
                         viewModel.settings.save()

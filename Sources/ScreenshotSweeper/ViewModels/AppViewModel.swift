@@ -25,13 +25,21 @@ final class AppViewModel: ObservableObject {
         case .folder(let bookmark):
             if let url = FolderAccess.resolveBookmark(bookmark) {
                 accessURL = url
-                url.startAccessingSecurityScopedResource()
+                guard url.startAccessingSecurityScopedResource() else {
+                    logger.error("Failed to access security-scoped resource for folder")
+                    destination = .trash
+                    return CleanupResult(cleaned: 0, skipped: 0)
+                }
                 destination = .folder(url)
             } else if let newBm = FolderAccess.selectFolder(), let url = FolderAccess.resolveBookmark(newBm) {
                 settings.destinationMode = .folder(bookmark: newBm)
                 settings.save()
                 accessURL = url
-                url.startAccessingSecurityScopedResource()
+                guard url.startAccessingSecurityScopedResource() else {
+                    logger.error("Failed to access security-scoped resource for new folder")
+                    destination = .trash
+                    return CleanupResult(cleaned: 0, skipped: 0)
+                }
                 destination = .folder(url)
             } else {
                 logger.error("Folder bookmark invalid; defaulting to trash")

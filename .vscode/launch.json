@@ -1,0 +1,22 @@
+{
+    "configurations": [
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:codex-clean}",
+            "name": "Debug ScreenshotSweeper",
+            "program": "${workspaceFolder:codex-clean}/.build/debug/ScreenshotSweeper",
+            "preLaunchTask": "swift: Build Debug ScreenshotSweeper"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:codex-clean}",
+            "name": "Release ScreenshotSweeper",
+            "program": "${workspaceFolder:codex-clean}/.build/release/ScreenshotSweeper",
+            "preLaunchTask": "swift: Build Release ScreenshotSweeper"
+        }
+    ]
+}

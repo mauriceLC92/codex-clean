@@ -5,18 +5,21 @@ import AppKit
 @main
 struct ScreenshotSweeperApp: App {
     @StateObject private var viewModel = AppViewModel()
-    @State private var showingPreferences = false
 
     var body: some Scene {
         MenuBarExtra("Screenshot Sweeper", systemImage: "trash.circle") {
-            MenuBarView(viewModel: viewModel, showingPreferences: $showingPreferences)
+            MenuBarView(viewModel: viewModel)
+                .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didWakeNotification)) { _ in
+                    viewModel.recomputeSchedule()
+                }
         }
         .menuBarExtraStyle(.window)
-        .sheet(isPresented: $showingPreferences) {
+        
+        Window("Preferences", id: "preferences") {
             PreferencesView(viewModel: viewModel)
         }
-        .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didWakeNotification)) { _ in
-            viewModel.recomputeSchedule()
-        }
+        .windowStyle(.hiddenTitleBar)
+        .windowResizability(.contentSize)
+        .defaultSize(width: 400, height: 600)
     }
 }
