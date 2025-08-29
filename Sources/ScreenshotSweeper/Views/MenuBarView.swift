@@ -7,6 +7,7 @@ struct MenuBarView: View {
     @State private var showingConfirm = false
     @State private var showSuccess = false
     @State private var lastCleanCount = 0
+    @State private var lastSkippedCount = 0
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -35,9 +36,10 @@ struct MenuBarView: View {
         .frame(minWidth: 220)
         .sheet(isPresented: $showingConfirm) {
             CleanConfirmationView(count: viewModel.matchCount, destination: viewModel.destinationDescription, isPresented: $showingConfirm) {
-                let count = viewModel.cleanNow()
-                lastCleanCount = count
-                if count > 0 {
+                let result = viewModel.cleanNow()
+                lastCleanCount = result.cleaned
+                lastSkippedCount = result.skipped
+                if result.cleaned > 0 || result.skipped > 0 {
                     withAnimation(.spring()) { showSuccess = true }
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                         withAnimation { showSuccess = false }
@@ -47,7 +49,7 @@ struct MenuBarView: View {
         }
         .overlay(alignment: .top) {
             if showSuccess {
-                Text("Moved \(lastCleanCount) file(s)")
+                Text("Moved \(lastCleanCount) file(s), skipped \(lastSkippedCount)")
                     .padding(6)
                     .background(.thinMaterial, in: Capsule())
                     .transition(.move(edge: .top).combined(with: .opacity))

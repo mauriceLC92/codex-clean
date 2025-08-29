@@ -17,8 +17,12 @@ enum FolderAccess {
         }
     }
 
+    /// Resolves a bookmark. If the bookmark is stale, nil is returned so the caller can prompt the user again.
     static func resolveBookmark(_ data: Data) -> URL? {
         var isStale = false
-        return try? URL(resolvingBookmarkData: data, options: .withSecurityScope, relativeTo: nil, bookmarkDataIsStale: &isStale)
+        guard let url = try? URL(resolvingBookmarkData: data, options: .withSecurityScope, relativeTo: nil, bookmarkDataIsStale: &isStale) else {
+            return nil
+        }
+        return isStale ? nil : url
     }
 }
