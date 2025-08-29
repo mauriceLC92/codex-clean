@@ -13,6 +13,7 @@ struct Settings: Codable {
     var prefix: String = "Screenshot"
     var isCaseSensitive: Bool = true
     var totalCleaned: Int = 0
+    var lastRun: Date? = nil
 }
 
 extension Settings {

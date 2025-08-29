@@ -7,7 +7,7 @@ struct ScreenshotSweeperApp: App {
     @State private var showingPreferences = false
 
     var body: some Scene {
-        MenuBarExtra("Screenshot Sweeper", systemImage: "scissors") {
+        MenuBarExtra("Screenshot Sweeper", systemImage: "trash.circle") {
             MenuBarView(viewModel: viewModel, showingPreferences: $showingPreferences)
         }
         .menuBarExtraStyle(.window)
