@@ -3,11 +3,11 @@ import AppKit
 
 struct MenuBarView: View {
     @ObservedObject var viewModel: AppViewModel
+    let appDelegate: AppDelegate
     @State private var showingConfirm = false
     @State private var showSuccess = false
     @State private var lastCleanCount = 0
     @State private var lastSkippedCount = 0
-    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         VStack {
@@ -42,8 +42,7 @@ struct MenuBarView: View {
                             viewModel.updateSchedule()
                         }
                     Button("Open Preferences…") {
-                        NSApplication.shared.activate(ignoringOtherApps: true)
-                        openWindow(id: "preferences")
+                        PreferencesWindowController.shared.show(with: viewModel)
                     }
                     .keyboardShortcut(",")
                     Button("Quit Screenshot Sweeper") {
