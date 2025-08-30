@@ -18,7 +18,6 @@ struct ScreenshotSweeperApp: App {
         Window("Preferences", id: "preferences") {
             PreferencesView(viewModel: viewModel)
         }
-        .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
         .defaultSize(width: 400, height: 600)
     }
