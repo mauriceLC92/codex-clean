@@ -63,6 +63,36 @@ swift package reset          # Reset package state
 - `Utilities/`: Helper functions (NextRunCalculator)
 - `Tests/`: XCTest unit tests
 
+## SwiftUI Architecture Specifics
+
+### Scene Management
+- **MenuBarExtra + Window Pattern**: App uses MenuBarExtra for menu bar presence and separate Window scene for preferences
+- **Window Opening**: Preferences opened via `@Environment(\.openWindow)` and `openWindow(id: "preferences")`
+- **State Sharing**: Single `@StateObject private var viewModel` shared between MenuBarExtra and Window scenes
+
+### TextField Binding Pattern
+When binding TextFields to nested struct properties in @Published objects, use custom Binding for reliable updates:
+```swift
+TextField("Prefix", text: Binding(
+    get: { viewModel.settings.prefix },
+    set: { newValue in
+        viewModel.settings.prefix = newValue
+        viewModel.settings.save()
+        // Additional side effects like refresh
+    }
+))
+```
+
+### Settings Persistence
+- Settings stored as JSON in UserDefaults with bundle-namespaced keys
+- Security-scoped bookmarks stored as Data for folder access permissions
+- Manual save() calls required after settings changes
+
+## Known Issues
+
+### TextField Input Issues
+The app has known issues with TextField input not working properly in certain configurations. This affects the prefix input field in preferences. The issue persists across different binding approaches and may be related to SwiftUI Form + Window interaction patterns on macOS.
+
 ## Permissions Requirements
 
 The app requires Desktop folder access permission. Users must grant permission via System Settings → Privacy & Security → Files and Folders. The app handles permission errors gracefully and provides clear logging.

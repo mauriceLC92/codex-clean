@@ -17,6 +17,18 @@ struct ScreenshotSweeperApp: App {
         
         Window("Preferences", id: "preferences") {
             PreferencesView(viewModel: viewModel)
+                .onAppear {
+                    NSApplication.shared.activate(ignoringOtherApps: true)
+                    DispatchQueue.main.async {
+                        if let window = NSApplication.shared.windows.first(where: { $0.identifier?.rawValue == "preferences" }) {
+                            window.level = .floating
+                            window.makeKeyAndOrderFront(nil)
+                            window.orderFrontRegardless()
+                            window.titlebarAppearsTransparent = false
+                            window.styleMask.insert([.titled, .closable, .miniaturizable])
+                        }
+                    }
+                }
         }
         .windowResizability(.contentSize)
         .defaultSize(width: 400, height: 600)

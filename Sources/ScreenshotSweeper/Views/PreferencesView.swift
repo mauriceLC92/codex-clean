@@ -9,12 +9,10 @@ struct PreferencesView: View {
     @State private var lastSkippedCount = 0
     @State private var cleanupTime: Date = Calendar.current.date(from: AppViewModel.defaultDateComponents) ?? Date()
     @State private var destinationChoice: Int = 0
-    @State private var prefixInput: String = ""
 
     init(viewModel: AppViewModel) {
         self.viewModel = viewModel
         _cleanupTime = State(initialValue: Calendar.current.date(from: viewModel.settings.cleanupTime) ?? Date())
-        _prefixInput = State(initialValue: viewModel.settings.prefix)
         switch viewModel.settings.destinationMode {
         case .trash:
             _destinationChoice = State(initialValue: 0)
@@ -80,13 +78,15 @@ struct PreferencesView: View {
             }
 
             Section("Filter") {
-                TextField("Prefix", text: $prefixInput)
-                    .textFieldStyle(.roundedBorder)
-                    .onChange(of: prefixInput) { newValue in
+                TextField("Prefix", text: Binding(
+                    get: { viewModel.settings.prefix },
+                    set: { newValue in
                         viewModel.settings.prefix = newValue
                         viewModel.settings.save()
                         viewModel.refreshMatchCount()
                     }
+                ))
+                .textFieldStyle(.roundedBorder)
                 Toggle("Case-sensitive match", isOn: $viewModel.settings.isCaseSensitive)
                     .onChange(of: viewModel.settings.isCaseSensitive) { _ in
                         viewModel.settings.save()
@@ -121,22 +121,22 @@ struct PreferencesView: View {
         }
         .padding(20)
         .frame(width: 400)
+        .opacity(showingConfirm ? 0 : 1)
         .overlay {
             if showingConfirm {
-                ZStack {
-                    Color.black.opacity(0.25).ignoresSafeArea()
-                    CleanConfirmationView(count: viewModel.matchCount, destination: viewModel.destinationDescription, isPresented: $showingConfirm) {
-                        let result = viewModel.cleanNow()
-                        lastCleanCount = result.cleaned
-                        lastSkippedCount = result.skipped
-                        if result.cleaned > 0 || result.skipped > 0 {
-                            withAnimation(.spring()) { showSuccess = true }
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                                withAnimation { showSuccess = false }
-                            }
+                CleanConfirmationView(count: viewModel.matchCount, destination: viewModel.destinationDescription, isPresented: $showingConfirm) {
+                    let result = viewModel.cleanNow()
+                    lastCleanCount = result.cleaned
+                    lastSkippedCount = result.skipped
+                    if result.cleaned > 0 || result.skipped > 0 {
+                        withAnimation(.spring()) { showSuccess = true }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                            withAnimation { showSuccess = false }
                         }
                     }
                 }
+                .padding(20)
+                .frame(width: 400)
             }
         }
         .overlay(alignment: .top) {
