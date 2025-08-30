@@ -66,9 +66,10 @@ swift package reset          # Reset package state
 ## SwiftUI Architecture Specifics
 
 ### Scene Management
-- **MenuBarExtra + Window Pattern**: App uses MenuBarExtra for menu bar presence and separate Window scene for preferences
-- **Window Opening**: Preferences opened via `@Environment(\.openWindow)` and `openWindow(id: "preferences")`
-- **State Sharing**: Single `@StateObject private var viewModel` shared between MenuBarExtra and Window scenes
+- **MenuBarExtra + NSWindow Pattern**: App uses MenuBarExtra for menu bar presence and PreferencesWindowController for preferences window management
+- **Window Opening**: Preferences opened via `PreferencesWindowController.shared.show(with: viewModel)`
+- **Activation Policy**: App dynamically switches between `.accessory` (menu bar only) and `.regular` (shows in dock) when preferences window opens/closes
+- **State Sharing**: Single `@StateObject private var viewModel` shared between MenuBarExtra and preferences window via AppDelegate
 
 ### TextField Binding Pattern
 When binding TextFields to nested struct properties in @Published objects, use custom Binding for reliable updates:
@@ -87,6 +88,12 @@ TextField("Prefix", text: Binding(
 - Settings stored as JSON in UserDefaults with bundle-namespaced keys
 - Security-scoped bookmarks stored as Data for folder access permissions
 - Manual save() calls required after settings changes
+
+### Screenshot Detection & Cleanup Logic
+- **File Matching**: Matches files by prefix (case-sensitive or insensitive) with extensions: png, jpg, jpeg, heic, tiff
+- **Conflict Resolution**: Uses automatic renaming (filename-1.ext, filename-2.ext, etc.) when moving to folders
+- **Error Handling**: Distinguishes between permission errors (throws) and file-busy errors (skips with logging)
+- **Automatic Cleanup**: Checks for missed runs on app wake/launch and executes if needed
 
 ## Known Issues
 
