@@ -8,11 +8,21 @@ Screenshot Sweeper is a macOS menu bar app built with Swift and SwiftUI that aut
 
 ## Development Commands
 
-### Building and Running
+### Building and Running (Makefile)
+```bash
+make build                    # Build app bundle via build-app.sh
+make run                      # Open the built app
+make clean                    # Remove .build and build directories
+make rebuild                  # Clean and build from scratch
+```
+
+### Building and Running (Swift Package Manager)
 ```bash
 swift build                    # Build the project
 swift run                     # Build and run the executable
 swift build --configuration release  # Release build
+./build-app.sh                # Create macOS app bundle with code signing
+./build-app.sh release        # Create release app bundle
 ```
 
 ### Testing
@@ -93,7 +103,7 @@ TextField("Prefix", text: Binding(
 - **File Matching**: Matches files by prefix (case-sensitive or insensitive) with extensions: png, jpg, jpeg, heic, tiff
 - **Conflict Resolution**: Uses automatic renaming (filename-1.ext, filename-2.ext, etc.) when moving to folders
 - **Error Handling**: Distinguishes between permission errors (throws) and file-busy errors (skips with logging)
-- **Automatic Cleanup**: Checks for missed runs on app wake/launch and executes if needed
+- **Automatic Cleanup**: Runs only at scheduled time, never on app startup or wake from sleep
 
 ## Known Issues
 

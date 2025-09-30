@@ -75,16 +75,10 @@ final class AppViewModel: ObservableObject {
         recomputeSchedule()
     }
 
-    /// Checks for missed runs and schedules the next one.
+    /// Schedules the next cleanup run.
     func recomputeSchedule() {
         scheduler.invalidate()
         guard settings.cleanupEnabled else { return }
-        let now = Date()
-        if let lastRun = settings.lastRun,
-           let previous = NextRunCalculator.previousDate(for: settings.cleanupTime, from: now),
-           lastRun < previous {
-            _ = cleanNow()
-        }
         let next = NextRunCalculator.nextDate(for: settings.cleanupTime, from: Date())
         scheduler.schedule(at: next) { [weak self] in
             guard let self = self else { return }
