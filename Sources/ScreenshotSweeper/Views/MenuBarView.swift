@@ -42,6 +42,7 @@ struct MenuBarView: View {
                             viewModel.updateSchedule()
                         }
                     Button("Open Preferences…") {
+                        NSApp.keyWindow?.close()
                         PreferencesWindowController.shared.show(with: viewModel)
                     }
                     .keyboardShortcut(",")
