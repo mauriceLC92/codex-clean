@@ -52,7 +52,7 @@ swift package reset          # Reset package state
 ### Key Patterns
 
 - **MVVM Architecture**: Views bind to AppViewModel via `@Published` properties
-- **Service Layer**: CleanupService, FolderAccess, and Scheduler provide isolated functionality  
+- **Service Layer**: CleanupService, FolderAccess, and Scheduler provide isolated functionality
 - **Security-Scoped Resources**: Folder destinations use bookmarks for sandboxed file access
 - **Permission Handling**: Extensive logging and error handling for macOS file permissions
 
@@ -67,7 +67,7 @@ swift package reset          # Reset package state
 ### File Organization
 
 - `Models/`: Data structures (Settings)
-- `Services/`: Business logic (CleanupService, FolderAccess, Scheduler)  
+- `Services/`: Business logic (CleanupService, FolderAccess, Scheduler)
 - `ViewModels/`: State management (AppViewModel)
 - `Views/`: SwiftUI interface components
 - `Utilities/`: Helper functions (NextRunCalculator)
