@@ -27,7 +27,7 @@ struct MenuBarView: View {
                 .frame(minWidth: 220)
             } else {
                 VStack(alignment: .leading, spacing: 8) {
-                    Button("Clean Now…") {
+                    Button("Clean Now") {
                         viewModel.refreshMatchCount()
                         showingConfirm = true
                     }
@@ -41,7 +41,7 @@ struct MenuBarView: View {
                             viewModel.settings.save()
                             viewModel.updateSchedule()
                         }
-                    Button("Open Preferences…") {
+                    Button("Open Preferences") {
                         NSApp.keyWindow?.close()
                         PreferencesWindowController.shared.show(with: viewModel)
                     }
@@ -54,6 +54,10 @@ struct MenuBarView: View {
                 .padding(12)
                 .frame(minWidth: 220)
             }
+        }
+        .onAppear {
+            showingConfirm = false
+            showSuccess = false
         }
         .overlay(alignment: .top) {
             if showSuccess {

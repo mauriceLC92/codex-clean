@@ -45,7 +45,7 @@ struct PreferencesView: View {
             Section("Destination") {
                 Picker("", selection: $destinationChoice) {
                     Text("Move to Trash").tag(0)
-                    Text("Move to Folder…").tag(1)
+                    Text("Move to Folder").tag(1)
                 }
                 .pickerStyle(.radioGroup)
                 .onChange(of: destinationChoice) { newValue in
@@ -102,7 +102,8 @@ struct PreferencesView: View {
                 .foregroundColor(.secondary)
 
             Section("Actions") {
-                Button("Clean Now…") { showingConfirm = true }
+                Button("Clean Now") { showingConfirm = true }
+                    .buttonStyle(.borderedProminent)
                     .disabled(viewModel.matchCount == 0)
                 if viewModel.matchCount == 0 {
                     Text("No matching files found.")
