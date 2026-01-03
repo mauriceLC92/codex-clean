@@ -23,8 +23,8 @@ struct MenuBarView: View {
                         }
                     }
                 }
-                .padding(12)
-                .frame(minWidth: 220)
+                .padding(20)
+                .frame(width: 400)
             } else {
                 VStack(alignment: .leading, spacing: 8) {
                     Button("Clean Now") {

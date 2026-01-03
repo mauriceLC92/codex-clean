@@ -16,6 +16,7 @@ struct CleanConfirmationView: View {
             if step == 1 {
                 Text("You're about to clean \(count) screenshot(s) from Desktop.")
                     .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 if !fileURLs.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
@@ -43,6 +44,7 @@ struct CleanConfirmationView: View {
             } else {
                 Text("These files will be moved to \(destination).")
                     .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
                 Toggle("I understand", isOn: $acknowledged)
                 HStack {
                     Button("Cancel") { isPresented = false }
