@@ -5,6 +5,7 @@ import os.log
 final class AppViewModel: ObservableObject {
     @Published var settings: Settings
     @Published var matchCount: Int = 0
+    @Published var matchedFiles: [URL] = []
     private let scheduler = Scheduler()
     private let cleanupService = CleanupService()
     private let logger = Logger(subsystem: "ScreenshotSweeper", category: "scheduler")
@@ -67,8 +68,15 @@ final class AppViewModel: ObservableObject {
 
     func refreshMatchCount() {
         let fm = FileManager.default
-        guard let desktop = fm.urls(for: .desktopDirectory, in: .userDomainMask).first else { matchCount = 0; return }
-        matchCount = cleanupService.findMatches(in: desktop, prefix: settings.prefix, isCaseSensitive: settings.isCaseSensitive).count
+        guard let desktop = fm.urls(for: .desktopDirectory, in: .userDomainMask).first else {
+            matchCount = 0
+            matchedFiles = []
+            return
+        }
+
+        let matches = cleanupService.findMatches(in: desktop, prefix: settings.prefix, isCaseSensitive: settings.isCaseSensitive)
+        matchedFiles = matches
+        matchCount = matches.count
     }
 
     func updateSchedule() {

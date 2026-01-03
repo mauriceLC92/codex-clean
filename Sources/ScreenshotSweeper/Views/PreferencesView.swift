@@ -124,7 +124,7 @@ struct PreferencesView: View {
         .opacity(showingConfirm ? 0 : 1)
         .overlay {
             if showingConfirm {
-                CleanConfirmationView(count: viewModel.matchCount, destination: viewModel.destinationDescription, isPresented: $showingConfirm) {
+                CleanConfirmationView(fileURLs: viewModel.matchedFiles, destination: viewModel.destinationDescription, isPresented: $showingConfirm) {
                     let result = viewModel.cleanNow()
                     lastCleanCount = result.cleaned
                     lastSkippedCount = result.skipped
