@@ -28,9 +28,10 @@ struct MenuBarView: View {
             } else {
                 VStack(alignment: .leading, spacing: 8) {
                     Button("Clean Now") {
-                        viewModel.refreshMatchCount()
                         showingConfirm = true
                     }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(viewModel.matchCount == 0)
                         .keyboardShortcut(.return, modifiers: [])
                     Text("Total cleaned (all-time): \(viewModel.settings.totalCleaned)")
                         .padding(.top, 4)
@@ -58,6 +59,7 @@ struct MenuBarView: View {
         .onAppear {
             showingConfirm = false
             showSuccess = false
+            viewModel.refreshMatchCount()
         }
         .overlay(alignment: .top) {
             if showSuccess {

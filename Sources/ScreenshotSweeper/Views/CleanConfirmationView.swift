@@ -13,7 +13,24 @@ struct CleanConfirmationView: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            if step == 1 {
+            if count == 0 {
+                Text("No screenshots found on Desktop.")
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text("Screenshots matching your prefix and file types will appear here.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 8)
+
+                Button("OK") {
+                    isPresented = false
+                }
+                .keyboardShortcut(.defaultAction)
+
+            } else if step == 1 {
                 Text("You're about to clean \(count) screenshot(s) from Desktop.")
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
