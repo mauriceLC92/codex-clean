@@ -3,8 +3,8 @@ import SwiftUI
 
 class PreferencesWindowController: NSWindowController, NSWindowDelegate {
     static let shared = PreferencesWindowController()
-    
-    private var viewModel: AppViewModel?
+
+    private weak var viewModel: AppViewModel?
     
     private init() {
         let window = NSWindow(
@@ -28,13 +28,11 @@ class PreferencesWindowController: NSWindowController, NSWindowDelegate {
     
     func show(with viewModel: AppViewModel) {
         self.viewModel = viewModel
-        
-        // Set up the content view with SwiftUI
-        if let viewModel = self.viewModel {
-            let preferencesView = PreferencesView(viewModel: viewModel)
-            let hostingView = NSHostingView(rootView: preferencesView)
-            window?.contentView = hostingView
-        }
+
+        // Always set up fresh content view with SwiftUI
+        let preferencesView = PreferencesView(viewModel: viewModel)
+        let hostingView = NSHostingView(rootView: preferencesView)
+        window?.contentView = hostingView
         
         // Switch to regular activation policy to show in dock temporarily
         NSApp.setActivationPolicy(.regular)

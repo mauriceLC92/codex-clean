@@ -82,15 +82,15 @@ struct PreferencesView: View {
                     get: { viewModel.settings.prefix },
                     set: { newValue in
                         viewModel.settings.prefix = newValue
-                        viewModel.settings.save()
-                        viewModel.refreshMatchCount()
+                        viewModel.debouncedSaveSettings()
+                        viewModel.debouncedRefreshMatchCount()
                     }
                 ))
                 .textFieldStyle(.roundedBorder)
                 Toggle("Case-sensitive match", isOn: $viewModel.settings.isCaseSensitive)
                     .onChange(of: viewModel.settings.isCaseSensitive) { _ in
-                        viewModel.settings.save()
-                        viewModel.refreshMatchCount()
+                        viewModel.debouncedSaveSettings()
+                        viewModel.debouncedRefreshMatchCount()
                     }
                 Text("Only files on Desktop whose names start with this prefix will be cleaned.")
                     .font(.footnote)
