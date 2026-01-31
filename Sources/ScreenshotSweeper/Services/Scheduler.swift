@@ -9,9 +9,13 @@ final class Scheduler {
         timer?.invalidate()
         let interval = max(date.timeIntervalSinceNow, 1)
         logger.debug("Scheduling cleanup in \(interval, privacy: .public) seconds")
-        timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: false) { _ in
+
+        let newTimer = Timer(timeInterval: interval, repeats: false) { _ in
             handler()
         }
+        newTimer.tolerance = max(interval * 0.1, 60) // 10% tolerance, min 60s for battery efficiency
+        RunLoop.main.add(newTimer, forMode: .common)
+        timer = newTimer
     }
 
     func invalidate() {

@@ -10,6 +10,16 @@ final class AppViewModel: ObservableObject {
     private let cleanupService = CleanupService()
     private let logger = Logger(subsystem: "ScreenshotSweeper", category: "scheduler")
 
+    private let refreshDebouncer = Debouncer(delay: 0.3)
+    private let saveDebouncer = Debouncer(delay: 0.5)
+    private static let maxDisplayFiles = 100
+
+    private static let relativeDateFormatter: RelativeDateTimeFormatter = {
+        let fmt = RelativeDateTimeFormatter()
+        fmt.unitsStyle = .abbreviated
+        return fmt
+    }()
+
     init() {
         settings = Settings.load()
         refreshMatchCount()
@@ -75,8 +85,20 @@ final class AppViewModel: ObservableObject {
         }
 
         let matches = cleanupService.findMatches(in: desktop, prefix: settings.prefix, isCaseSensitive: settings.isCaseSensitive)
-        matchedFiles = matches
         matchCount = matches.count
+        matchedFiles = Array(matches.prefix(Self.maxDisplayFiles))
+    }
+
+    func debouncedRefreshMatchCount() {
+        refreshDebouncer.debounce { [weak self] in
+            self?.refreshMatchCount()
+        }
+    }
+
+    func debouncedSaveSettings() {
+        saveDebouncer.debounce { [weak self] in
+            self?.settings.save()
+        }
     }
 
     func updateSchedule() {
@@ -119,9 +141,7 @@ final class AppViewModel: ObservableObject {
 
     var lastRunDescription: String {
         if let last = settings.lastRun {
-            let fmt = RelativeDateTimeFormatter()
-            fmt.unitsStyle = .abbreviated
-            return fmt.localizedString(for: last, relativeTo: Date())
+            return Self.relativeDateFormatter.localizedString(for: last, relativeTo: Date())
         } else {
             return NSLocalizedString("Never", comment: "Never run")
         }
