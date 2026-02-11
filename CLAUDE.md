@@ -8,21 +8,14 @@ Screenshot Sweeper is a macOS menu bar app built with Swift and SwiftUI that aut
 
 ## Development Commands
 
-### Building and Running (Makefile)
+### Building and Running
 ```bash
 make build                    # Build app bundle via build-app.sh
 make run                      # Open the built app
 make clean                    # Remove .build and build directories
 make rebuild                  # Clean and build from scratch
-```
-
-### Building and Running (Swift Package Manager)
-```bash
-swift build                    # Build the project
+swift build                   # Build via SPM directly
 swift run                     # Build and run the executable
-swift build --configuration release  # Release build
-./build-app.sh                # Create macOS app bundle with code signing
-./build-app.sh release        # Create release app bundle
 ```
 
 ### Testing
@@ -32,84 +25,48 @@ swift test --parallel         # Run tests in parallel
 swift test --filter NextRunCalculatorTests  # Run specific test class
 ```
 
-### Package Management
-```bash
-swift package resolve         # Resolve dependencies
-swift package clean          # Clean build artifacts
-swift package reset          # Reset package state
-```
-
 ## Architecture
 
-### Core Components
+### MVVM with Service Layer
 
-- **ScreenshotSweeperApp.swift**: Main app entry point using `@main` and MenuBarExtra
-- **AppViewModel**: Central state management using `@StateObject`, coordinates between services
-- **CleanupService**: Core business logic for finding and moving screenshot files
-- **Scheduler**: Handles timer-based automatic cleanup scheduling
-- **Settings**: Codable model with UserDefaults persistence using security-scoped bookmarks
+- **ScreenshotSweeperApp** (`@main`): Creates a single `AppViewModel` as `@StateObject`, passes it to both `MenuBarView` and the preferences window via `AppDelegate`
+- **AppViewModel**: Central `ObservableObject` coordinating between UI and services. Owns `CleanupService`, `Scheduler`, and `Settings`. All state flows through `@Published` properties
+- **CleanupService**: Stateless struct that finds matching screenshot files and moves them (to trash or folder with conflict-safe renaming)
+- **Scheduler**: Wraps a single `Timer` for the next scheduled cleanup. Uses `NextRunCalculator` to compute next run date, then re-schedules recursively after each run
+- **Settings**: `Codable` struct persisted as JSON in `UserDefaults`. Security-scoped bookmarks stored as `Data` for folder destinations. Requires manual `save()` calls after mutation
+
+### Scene Management (MenuBarExtra + NSWindow)
+
+The app uses `MenuBarExtra` with `.window` style for the menu bar popover and a separate `PreferencesWindowController` (singleton `NSWindowController`) for the preferences window. When preferences open, the activation policy switches from `.accessory` to `.regular` (shows dock icon); it switches back when the window closes. The preferences window uses `NSHostingView` to embed `PreferencesView` SwiftUI content.
 
 ### Key Patterns
 
-- **MVVM Architecture**: Views bind to AppViewModel via `@Published` properties
-- **Service Layer**: CleanupService, FolderAccess, and Scheduler provide isolated functionality
-- **Security-Scoped Resources**: Folder destinations use bookmarks for sandboxed file access
-- **Permission Handling**: Extensive logging and error handling for macOS file permissions
-
-### Data Flow
-
-1. Settings loaded from UserDefaults on app launch
-2. AppViewModel coordinates between UI and services
-3. Scheduler uses NextRunCalculator for time-based cleanup
-4. CleanupService performs file operations with permission checks
-5. Results update Settings and trigger UI refreshes
-
-### File Organization
-
-- `Models/`: Data structures (Settings)
-- `Services/`: Business logic (CleanupService, FolderAccess, Scheduler)
-- `ViewModels/`: State management (AppViewModel)
-- `Views/`: SwiftUI interface components
-- `Utilities/`: Helper functions (NextRunCalculator)
-- `Tests/`: XCTest unit tests
-
-## SwiftUI Architecture Specifics
-
-### Scene Management
-- **MenuBarExtra + NSWindow Pattern**: App uses MenuBarExtra for menu bar presence and PreferencesWindowController for preferences window management
-- **Window Opening**: Preferences opened via `PreferencesWindowController.shared.show(with: viewModel)`
-- **Activation Policy**: App dynamically switches between `.accessory` (menu bar only) and `.regular` (shows in dock) when preferences window opens/closes
-- **State Sharing**: Single `@StateObject private var viewModel` shared between MenuBarExtra and preferences window via AppDelegate
-
-### TextField Binding Pattern
-When binding TextFields to nested struct properties in @Published objects, use custom Binding for reliable updates:
+**TextField Binding**: When binding TextFields to nested struct properties in `@Published` objects, use custom `Binding` for reliable updates:
 ```swift
 TextField("Prefix", text: Binding(
     get: { viewModel.settings.prefix },
     set: { newValue in
         viewModel.settings.prefix = newValue
         viewModel.settings.save()
-        // Additional side effects like refresh
     }
 ))
 ```
 
-### Settings Persistence
-- Settings stored as JSON in UserDefaults with bundle-namespaced keys
-- Security-scoped bookmarks stored as Data for folder access permissions
-- Manual save() calls required after settings changes
+**Debouncing**: `AppViewModel` uses `Debouncer` (DispatchWorkItem-based) for prefix changes — `debouncedRefreshMatchCount()` (0.3s) and `debouncedSaveSettings()` (0.5s) to avoid excessive I/O.
 
-### Screenshot Detection & Cleanup Logic
-- **File Matching**: Matches files by prefix (case-sensitive or insensitive) with extensions: png, jpg, jpeg, heic, tiff
-- **Conflict Resolution**: Uses automatic renaming (filename-1.ext, filename-2.ext, etc.) when moving to folders
-- **Error Handling**: Distinguishes between permission errors (throws) and file-busy errors (skips with logging)
-- **Automatic Cleanup**: Runs only at scheduled time, never on app startup or wake from sleep
+**Security-Scoped Resources**: Folder destinations require `startAccessingSecurityScopedResource()` / `stopAccessingSecurityScopedResource()` bracketing around file operations. If a bookmark becomes invalid, the app prompts the user to reselect.
+
+**Error Handling in CleanupService**: Permission errors (`NSFileWriteNoPermissionError`, `NSFileReadNoPermissionError`) are thrown to the caller. Busy files (`EBUSY`) are silently skipped. Other errors are logged and skipped.
+
+### Screenshot Detection
+
+Files are matched by prefix (configurable case sensitivity) against extensions: `png`, `jpg`, `jpeg`, `heic`, `tiff`. Only the Desktop directory is scanned.
 
 ## Known Issues
 
 ### TextField Input Issues
-The app has known issues with TextField input not working properly in certain configurations. This affects the prefix input field in preferences. The issue persists across different binding approaches and may be related to SwiftUI Form + Window interaction patterns on macOS.
+The prefix TextField in preferences has known issues with input not working properly. This may be related to SwiftUI Form + NSWindow interaction patterns on macOS.
 
 ## Permissions Requirements
 
-The app requires Desktop folder access permission. Users must grant permission via System Settings → Privacy & Security → Files and Folders. The app handles permission errors gracefully and provides clear logging.
+The app requires Desktop folder access permission via System Settings → Privacy & Security → Files and Folders.

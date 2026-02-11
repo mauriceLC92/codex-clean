@@ -1,10 +1,10 @@
-// swift-tools-version: 5.9
+// swift-tools-version: 6.0
 import PackageDescription
 
 let package = Package(
     name: "ScreenshotSweeper",
     platforms: [
-        .macOS(.v13)
+        .macOS(.v15)
     ],
     products: [
         .executable(name: "ScreenshotSweeper", targets: ["ScreenshotSweeper"])
@@ -13,6 +13,9 @@ let package = Package(
         .executableTarget(
             name: "ScreenshotSweeper",
             path: "Sources/ScreenshotSweeper",
+            swiftSettings: [
+                .swiftLanguageMode(.v5)
+            ],
             linkerSettings: [
                 .linkedFramework("AppKit"),
                 .linkedFramework("SwiftUI")
@@ -21,7 +24,10 @@ let package = Package(
         .testTarget(
             name: "ScreenshotSweeperTests",
             dependencies: ["ScreenshotSweeper"],
-            path: "Tests/ScreenshotSweeperTests"
+            path: "Tests/ScreenshotSweeperTests",
+            swiftSettings: [
+                .swiftLanguageMode(.v5)
+            ]
         )
     ]
 )

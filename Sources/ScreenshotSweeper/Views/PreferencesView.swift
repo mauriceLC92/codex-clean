@@ -25,13 +25,13 @@ struct PreferencesView: View {
         Form {
             Section("Schedule") {
                 Toggle("Enable daily cleanup", isOn: $viewModel.settings.cleanupEnabled)
-                    .onChange(of: viewModel.settings.cleanupEnabled) { _ in
+                    .onChange(of: viewModel.settings.cleanupEnabled) {
                         viewModel.settings.save()
                         viewModel.updateSchedule()
                     }
                 DatePicker("Time", selection: $cleanupTime, displayedComponents: .hourAndMinute)
-                    .onChange(of: cleanupTime) { newValue in
-                        let comps = Calendar.current.dateComponents([.hour, .minute], from: newValue)
+                    .onChange(of: cleanupTime) {
+                        let comps = Calendar.current.dateComponents([.hour, .minute], from: cleanupTime)
                         viewModel.settings.cleanupTime = comps
                         viewModel.settings.save()
                         viewModel.updateSchedule()
@@ -48,8 +48,8 @@ struct PreferencesView: View {
                     Text("Move to Folder").tag(1)
                 }
                 .pickerStyle(.radioGroup)
-                .onChange(of: destinationChoice) { newValue in
-                    if newValue == 0 {
+                .onChange(of: destinationChoice) {
+                    if destinationChoice == 0 {
                         viewModel.settings.destinationMode = .trash
                         viewModel.settings.save()
                     }
@@ -88,7 +88,7 @@ struct PreferencesView: View {
                 ))
                 .textFieldStyle(.roundedBorder)
                 Toggle("Case-sensitive match", isOn: $viewModel.settings.isCaseSensitive)
-                    .onChange(of: viewModel.settings.isCaseSensitive) { _ in
+                    .onChange(of: viewModel.settings.isCaseSensitive) {
                         viewModel.debouncedSaveSettings()
                         viewModel.debouncedRefreshMatchCount()
                     }

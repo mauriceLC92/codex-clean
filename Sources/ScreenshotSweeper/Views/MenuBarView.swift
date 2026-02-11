@@ -38,7 +38,7 @@ struct MenuBarView: View {
                     Text("Last run: \(viewModel.lastRunDescription)")
                     Divider()
                     Toggle("Daily cleanup", isOn: $viewModel.settings.cleanupEnabled)
-                        .onChange(of: viewModel.settings.cleanupEnabled) { _ in
+                        .onChange(of: viewModel.settings.cleanupEnabled) {
                             viewModel.settings.save()
                             viewModel.updateSchedule()
                         }
