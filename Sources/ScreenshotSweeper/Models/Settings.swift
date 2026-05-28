@@ -12,6 +12,7 @@ struct Settings: Codable {
     var destinationMode: DestinationMode = .trash
     var prefix: String = "Screenshot"
     var isCaseSensitive: Bool = true
+    var destinationNeedsAttention: Bool = false
     var totalCleaned: Int = 0
     var lastRun: Date? = nil
 }

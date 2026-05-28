@@ -84,6 +84,23 @@ final class TrashCleanupTests: XCTestCase {
         XCTAssertEqual(result.skipped, 0, "No files should be skipped")
     }
 
+    func testTrashCleanupWithEmptyPrefixMovesNothing() throws {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let fm = FileManager.default
+        let file = dir.appendingPathComponent("Screenshot1.png")
+        fm.createFile(atPath: file.path, contents: Data())
+
+        let service = CleanupService()
+        let result = try service.performCleanup(prefix: "", isCaseSensitive: true, destination: .trash, directory: dir)
+
+        XCTAssertEqual(result.cleaned, 0, "Empty prefix should not clean anything")
+        XCTAssertEqual(result.skipped, 0, "Empty prefix should not skip anything")
+        XCTAssertTrue(fm.fileExists(atPath: file.path), "File should remain in place")
+    }
+
     func testTrashCleanupWithCaseInsensitivePrefix() throws {
         let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)

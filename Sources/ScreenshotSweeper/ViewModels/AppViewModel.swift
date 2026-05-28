@@ -6,6 +6,7 @@ final class AppViewModel: ObservableObject {
     @Published var settings: Settings
     @Published var matchCount: Int = 0
     @Published var matchedFiles: [URL] = []
+    @Published var isCleaning: Bool = false
     private let scheduler = Scheduler()
     private let cleanupService = CleanupService()
     private let logger = Logger(subsystem: "ScreenshotSweeper", category: "scheduler")
@@ -26,54 +27,100 @@ final class AppViewModel: ObservableObject {
         recomputeSchedule()
     }
 
-    @discardableResult
-    func cleanNow() -> CleanupResult {
-        let destination: CleanupService.Destination
-        var accessURL: URL? = nil
-        switch settings.destinationMode {
-        case .trash:
-            destination = .trash
-        case .folder(let bookmark):
-            if let url = FolderAccess.resolveBookmark(bookmark) {
-                accessURL = url
-                guard url.startAccessingSecurityScopedResource() else {
-                    logger.error("Failed to access security-scoped resource for folder")
-                    destination = .trash
-                    return CleanupResult(cleaned: 0, skipped: 0)
-                }
-                destination = .folder(url)
-            } else if let newBm = FolderAccess.selectFolder(), let url = FolderAccess.resolveBookmark(newBm) {
-                settings.destinationMode = .folder(bookmark: newBm)
-                settings.save()
-                accessURL = url
-                guard url.startAccessingSecurityScopedResource() else {
-                    logger.error("Failed to access security-scoped resource for new folder")
-                    destination = .trash
-                    return CleanupResult(cleaned: 0, skipped: 0)
-                }
-                destination = .folder(url)
-            } else {
-                logger.error("Folder bookmark invalid; defaulting to trash")
-                destination = .trash
-            }
+    func cleanNow(allowsFolderSelection: Bool = true, completion: @escaping (CleanupResult) -> Void) {
+        guard !isCleaning else {
+            completion(CleanupResult(cleaned: 0, skipped: 0))
+            return
         }
 
-        let result: CleanupResult
-        do {
-            result = try cleanupService.performCleanup(prefix: settings.prefix, isCaseSensitive: settings.isCaseSensitive, destination: destination)
-            if result.cleaned > 0 {
-                settings.totalCleaned += result.cleaned
-            }
-            settings.lastRun = Date()
-            settings.save()
+        guard !settings.prefix.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             refreshMatchCount()
-        } catch {
-            logger.error("Cleanup failed due to permission error")
-            accessURL?.stopAccessingSecurityScopedResource()
-            return CleanupResult(cleaned: 0, skipped: 0)
+            completion(CleanupResult(cleaned: 0, skipped: 0))
+            return
         }
-        accessURL?.stopAccessingSecurityScopedResource()
-        return result
+
+        guard let preparedDestination = prepareDestination(allowsFolderSelection: allowsFolderSelection) else {
+            completion(CleanupResult(cleaned: 0, skipped: 0))
+            return
+        }
+
+        let prefix = settings.prefix
+        let isCaseSensitive = settings.isCaseSensitive
+        let cleanupService = cleanupService
+        isCleaning = true
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            let cleanupResult: CleanupResult
+            let cleanupFailed: Bool
+            do {
+                cleanupResult = try cleanupService.performCleanup(prefix: prefix, isCaseSensitive: isCaseSensitive, destination: preparedDestination.destination)
+                cleanupFailed = false
+            } catch {
+                cleanupResult = CleanupResult(cleaned: 0, skipped: 0)
+                cleanupFailed = true
+            }
+
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else {
+                    preparedDestination.accessURL?.stopAccessingSecurityScopedResource()
+                    return
+                }
+
+                preparedDestination.accessURL?.stopAccessingSecurityScopedResource()
+                self.isCleaning = false
+
+                if cleanupFailed {
+                    self.logger.error("Cleanup failed due to permission error")
+                    completion(cleanupResult)
+                    return
+                }
+
+                if cleanupResult.cleaned > 0 {
+                    self.settings.totalCleaned += cleanupResult.cleaned
+                }
+                self.settings.lastRun = Date()
+                self.settings.save()
+                self.refreshMatchCount()
+                completion(cleanupResult)
+            }
+        }
+    }
+
+    private func prepareDestination(allowsFolderSelection: Bool) -> (destination: CleanupService.Destination, accessURL: URL?)? {
+        switch settings.destinationMode {
+        case .trash:
+            settings.destinationNeedsAttention = false
+            return (.trash, nil)
+        case .folder(let bookmark):
+            if let url = FolderAccess.resolveBookmark(bookmark) {
+                guard url.startAccessingSecurityScopedResource() else {
+                    logger.error("Failed to access security-scoped resource for folder")
+                    markDestinationNeedsAttention()
+                    return nil
+                }
+                settings.destinationNeedsAttention = false
+                return (.folder(url), url)
+            } else if allowsFolderSelection, let newBm = FolderAccess.selectFolder(), let url = FolderAccess.resolveBookmark(newBm) {
+                settings.destinationMode = .folder(bookmark: newBm)
+                settings.destinationNeedsAttention = false
+                settings.save()
+                guard url.startAccessingSecurityScopedResource() else {
+                    logger.error("Failed to access security-scoped resource for new folder")
+                    markDestinationNeedsAttention()
+                    return nil
+                }
+                return (.folder(url), url)
+            } else {
+                logger.error("Folder bookmark invalid; cleanup skipped")
+                markDestinationNeedsAttention()
+                return nil
+            }
+        }
+    }
+
+    private func markDestinationNeedsAttention() {
+        settings.destinationNeedsAttention = true
+        settings.save()
     }
 
     func refreshMatchCount() {
@@ -112,8 +159,9 @@ final class AppViewModel: ObservableObject {
         let next = NextRunCalculator.nextDate(for: settings.cleanupTime, from: Date())
         scheduler.schedule(at: next) { [weak self] in
             guard let self = self else { return }
-            _ = self.cleanNow()
-            self.recomputeSchedule()
+            self.cleanNow(allowsFolderSelection: false) { [weak self] _ in
+                self?.recomputeSchedule()
+            }
         }
     }
 

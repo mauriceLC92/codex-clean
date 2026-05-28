@@ -40,9 +40,10 @@ cp "Sources/ScreenshotSweeper/Resources/Info.plist" "${APP_BUNDLE}/Contents/Info
 echo "APPL????" > "${APP_BUNDLE}/Contents/PkgInfo"
 
 # Sign the app if code signing identity is available
-if security find-identity -p codesigning -v | grep -q "Developer ID Application"; then
-    echo "Code signing the app..."
-    codesign --force --deep --sign - "${APP_BUNDLE}"
+DEVELOPER_ID_IDENTITY="$(security find-identity -p codesigning -v | awk -F '\"' '/Developer ID Application/ { print $2; exit }')"
+if [ -n "${DEVELOPER_ID_IDENTITY}" ]; then
+    echo "Code signing the app with ${DEVELOPER_ID_IDENTITY}..."
+    codesign --force --deep --sign "${DEVELOPER_ID_IDENTITY}" "${APP_BUNDLE}"
 else
     echo "No code signing identity found, signing with ad-hoc signature..."
     codesign --force --deep --sign - "${APP_BUNDLE}"

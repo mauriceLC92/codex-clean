@@ -12,14 +12,15 @@ struct MenuBarView: View {
     var body: some View {
         VStack {
             if showingConfirm {
-                CleanConfirmationView(fileURLs: viewModel.matchedFiles, destination: viewModel.destinationDescription, isPresented: $showingConfirm) {
-                    let result = viewModel.cleanNow()
-                    lastCleanCount = result.cleaned
-                    lastSkippedCount = result.skipped
-                    if result.cleaned > 0 || result.skipped > 0 {
-                        withAnimation(.spring()) { showSuccess = true }
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                            withAnimation { showSuccess = false }
+                CleanConfirmationView(fileURLs: viewModel.matchedFiles, totalCount: viewModel.matchCount, destination: viewModel.destinationDescription, isPresented: $showingConfirm) {
+                    viewModel.cleanNow { result in
+                        lastCleanCount = result.cleaned
+                        lastSkippedCount = result.skipped
+                        if result.cleaned > 0 || result.skipped > 0 {
+                            withAnimation(.spring()) { showSuccess = true }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                withAnimation { showSuccess = false }
+                            }
                         }
                     }
                 }
@@ -31,8 +32,13 @@ struct MenuBarView: View {
                         showingConfirm = true
                     }
                         .buttonStyle(.borderedProminent)
-                        .disabled(viewModel.matchCount == 0)
+                        .disabled(viewModel.matchCount == 0 || viewModel.isCleaning)
                         .keyboardShortcut(.return, modifiers: [])
+                    if viewModel.settings.destinationNeedsAttention {
+                        Text("Destination folder needs attention.")
+                            .font(.footnote)
+                            .foregroundColor(.red)
+                    }
                     Text("Total cleaned (all-time): \(viewModel.settings.totalCleaned)")
                         .padding(.top, 4)
                     Text("Last run: \(viewModel.lastRunDescription)")
