@@ -13,6 +13,7 @@ let package = Package(
         .executableTarget(
             name: "ScreenshotSweeper",
             path: "Sources/ScreenshotSweeper",
+            exclude: ["Resources/Info.plist"],
             swiftSettings: [
                 .swiftLanguageMode(.v5)
             ],

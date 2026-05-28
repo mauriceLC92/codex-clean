@@ -13,7 +13,7 @@ final class Scheduler {
         let newTimer = Timer(timeInterval: interval, repeats: false) { _ in
             handler()
         }
-        newTimer.tolerance = max(interval * 0.1, 60) // 10% tolerance, min 60s for battery efficiency
+        newTimer.tolerance = min(max(interval * 0.01, 60), 300)
         RunLoop.main.add(newTimer, forMode: .common)
         timer = newTimer
     }

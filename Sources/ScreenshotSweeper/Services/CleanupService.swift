@@ -14,6 +14,10 @@ struct CleanupService {
 
     /// Returns matching screenshot URLs without moving them.
     func findMatches(in directory: URL, prefix: String, isCaseSensitive: Bool) -> [URL] {
+        guard !prefix.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return []
+        }
+
         let fm = FileManager.default
         let exts = ["png", "jpg", "jpeg", "heic", "tiff"]
         let items: [URL]

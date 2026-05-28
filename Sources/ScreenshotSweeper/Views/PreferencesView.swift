@@ -51,6 +51,7 @@ struct PreferencesView: View {
                 .onChange(of: destinationChoice) {
                     if destinationChoice == 0 {
                         viewModel.settings.destinationMode = .trash
+                        viewModel.settings.destinationNeedsAttention = false
                         viewModel.settings.save()
                     }
                 }
@@ -66,6 +67,11 @@ struct PreferencesView: View {
                             Button("Reveal in Finder") {
                                 NSWorkspace.shared.activateFileViewerSelecting([url])
                             }
+                        }
+                        if viewModel.settings.destinationNeedsAttention {
+                            Text("Re-select this folder before scheduled cleanup can run.")
+                                .font(.footnote)
+                                .foregroundColor(.red)
                         }
                     } else {
                         HStack {
@@ -95,6 +101,11 @@ struct PreferencesView: View {
                 Text("Only files on Desktop whose names start with this prefix will be cleaned.")
                     .font(.footnote)
                     .foregroundColor(.secondary)
+                if viewModel.settings.prefix.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Text("Enter a prefix before cleanup can run.")
+                        .font(.footnote)
+                        .foregroundColor(.red)
+                }
             }
 
             Text("Currently matching \(viewModel.matchCount) file(s) on Desktop.")
@@ -104,7 +115,7 @@ struct PreferencesView: View {
             Section("Actions") {
                 Button("Clean Now") { showingConfirm = true }
                     .buttonStyle(.borderedProminent)
-                    .disabled(viewModel.matchCount == 0)
+                    .disabled(viewModel.matchCount == 0 || viewModel.isCleaning)
                 if viewModel.matchCount == 0 {
                     Text("No matching files found.")
                         .font(.footnote)
@@ -125,14 +136,15 @@ struct PreferencesView: View {
         .opacity(showingConfirm ? 0 : 1)
         .overlay {
             if showingConfirm {
-                CleanConfirmationView(fileURLs: viewModel.matchedFiles, destination: viewModel.destinationDescription, isPresented: $showingConfirm) {
-                    let result = viewModel.cleanNow()
-                    lastCleanCount = result.cleaned
-                    lastSkippedCount = result.skipped
-                    if result.cleaned > 0 || result.skipped > 0 {
-                        withAnimation(.spring()) { showSuccess = true }
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                            withAnimation { showSuccess = false }
+                CleanConfirmationView(fileURLs: viewModel.matchedFiles, totalCount: viewModel.matchCount, destination: viewModel.destinationDescription, isPresented: $showingConfirm) {
+                    viewModel.cleanNow { result in
+                        lastCleanCount = result.cleaned
+                        lastSkippedCount = result.skipped
+                        if result.cleaned > 0 || result.skipped > 0 {
+                            withAnimation(.spring()) { showSuccess = true }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                withAnimation { showSuccess = false }
+                            }
                         }
                     }
                 }
@@ -156,6 +168,7 @@ struct PreferencesView: View {
     private func chooseFolder() {
         if let bm = FolderAccess.selectFolder() {
             viewModel.settings.destinationMode = .folder(bookmark: bm)
+            viewModel.settings.destinationNeedsAttention = false
             viewModel.settings.save()
             viewModel.refreshMatchCount()
         }

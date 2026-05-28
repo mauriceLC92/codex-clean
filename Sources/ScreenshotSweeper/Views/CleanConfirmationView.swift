@@ -2,6 +2,7 @@ import SwiftUI
 
 struct CleanConfirmationView: View {
     let fileURLs: [URL]
+    let totalCount: Int
     let destination: String
     @Binding var isPresented: Bool
     var onConfirm: () -> Void
@@ -9,7 +10,8 @@ struct CleanConfirmationView: View {
     @State private var step: Int = 1
     @State private var acknowledged = false
 
-    private var count: Int { fileURLs.count }
+    private var count: Int { totalCount }
+    private var isPreviewCapped: Bool { totalCount > fileURLs.count }
 
     var body: some View {
         VStack(spacing: 16) {
@@ -37,7 +39,7 @@ struct CleanConfirmationView: View {
 
                 if !fileURLs.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Files to be moved:")
+                        Text(isPreviewCapped ? "Files to be moved (showing first \(fileURLs.count)):" : "Files to be moved:")
                             .font(.caption)
                             .foregroundColor(.secondary)
 

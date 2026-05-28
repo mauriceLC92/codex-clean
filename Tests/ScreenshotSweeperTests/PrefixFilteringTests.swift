@@ -26,7 +26,7 @@ final class PrefixFilteringTests: XCTestCase {
         XCTAssertEqual(matches.count, 2)
     }
 
-    func testEmptyPrefixMatchesAll() throws {
+    func testEmptyPrefixMatchesNothing() throws {
         let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
@@ -35,7 +35,19 @@ final class PrefixFilteringTests: XCTestCase {
         fm.createFile(atPath: dir.appendingPathComponent("Foo.png").path, contents: Data())
         let service = CleanupService()
         let matches = service.findMatches(in: dir, prefix: "", isCaseSensitive: true)
-        XCTAssertEqual(matches.count, 2)
+        XCTAssertEqual(matches.count, 0)
+    }
+
+    func testWhitespaceOnlyPrefixMatchesNothing() throws {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let fm = FileManager.default
+        fm.createFile(atPath: dir.appendingPathComponent(" Screenshot1.png").path, contents: Data())
+        fm.createFile(atPath: dir.appendingPathComponent("Foo.png").path, contents: Data())
+        let service = CleanupService()
+        let matches = service.findMatches(in: dir, prefix: "   ", isCaseSensitive: true)
+        XCTAssertEqual(matches.count, 0)
     }
 
     // MARK: - Negative Tests (Critical Safety Tests)
